@@ -47,6 +47,9 @@ class CircleShadowButton(context: Context?, attrs: AttributeSet?) : View(context
     var paddingPercent = 0f
     lateinit var lightRect: RectF
 
+    val cutWidth = 7f
+    val cutGap = 1f
+
     val debug = Debug(false)
 
     override fun onDraw(canvas: Canvas) {
@@ -115,10 +118,10 @@ class CircleShadowButton(context: Context?, attrs: AttributeSet?) : View(context
     private fun drawPaddingCut(canvas: Canvas) {
         resetPaint(fillPaint)
         fillPaint.color = baseColor
-        canvas.drawCircle(cx, cy, btnRadius + 7, fillPaint)
+        canvas.drawCircle(cx, cy, btnRadius + cutWidth, fillPaint)
 
         strokePaint.color = Color.BLACK
-        canvas.drawCircle(cx, cy, btnRadius + 1, strokePaint)
+        canvas.drawCircle(cx, cy, btnRadius + cutGap, strokePaint)
     }
 
     private fun drawLightPadding(canvas: Canvas) {

@@ -26,6 +26,7 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
     val fillPaint = Paint().apply {
         style = Paint.Style.FILL
         isAntiAlias = true
+        isDither = true
     }
 
     val strokePaint = Paint().apply {
@@ -51,14 +52,19 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
     var cy = 0f
     var btnRadius = 0f
     var radius = 0f
-    var padding = 30f
+
+    var padding = 60f
+
     var paddingPercent = 0f
 
-    val roundCornern = 10f
+    val cornerRadius = 20f
 
     lateinit var lightRect: RectF
     lateinit var btnRect: RectF
     lateinit var totalRect: RectF
+
+    val cutWidth = 7f
+    val cutGap = 1f
 
     val debug = Debug(false)
 
@@ -79,10 +85,11 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
         radius = height / 2f
         paddingPercent = padding / width
 
-        //drawPadding(canvas)
-        //drawButton(canvas)
-
+        drawPadding(canvas)
+        drawCut(canvas)
+        drawButton(canvas)
         //drawChar(canvas)
+
 
         drawInnerShadow(canvas)
 
@@ -95,14 +102,38 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
     private fun createHole() {
         val src = createBmp(
             btnRect,
+            { c, width, height ->
+                fillPaint.color = Color.BLACK
+                c.drawRoundRect(0f, 0f, btnRect.width(), btnRect.height(), 25f, 25f, fillPaint)
+                fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                val width = 5f
+                c.drawRoundRect(width, width, btnRect.width() - width, btnRect.height() - width, 25f, 25f, fillPaint)
+            },
             Bitmap.Config.ARGB_8888
-        ) { c, width, height ->
-            fillPaint.color = Color.BLACK
-            c.drawRoundRect(0f, 0f, btnRect.width(), btnRect.height(), 25f, 25f, fillPaint)
-            fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-            val width = 5f
-            c.drawRoundRect(width, width, btnRect.width() - width, btnRect.height() - width, 25f, 25f, fillPaint)
-        }
+        )
+    }
+
+    private fun drawCut(canvas: Canvas) {
+
+        resetPaint(fillPaint)
+        resetPaint(strokePaint)
+
+        fillPaint.color = baseColor
+
+        val cornerDecreaser = cornerRadius / 10f
+        canvas.drawRoundRect(
+            btnRect.left - cutWidth,
+            btnRect.top - cutWidth,
+            btnRect.right + cutWidth,
+            btnRect.bottom + cutWidth,
+            cornerRadius + cornerDecreaser,
+            cornerRadius + cornerDecreaser,
+            fillPaint
+        )
+
+        strokePaint.color = Color.BLACK
+        strokePaint.strokeWidth = cutGap
+        canvas.drawRoundRect(btnRect, cornerRadius, cornerRadius, strokePaint)
     }
 
     private fun drawInnerShadow(canvas: Canvas) {
@@ -111,71 +142,45 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
         resetPaint(strokePaint)
         resetPaint(antialiasPaint)
 
-        val src = createBmp(
+        val blurRadius = 50f
+        val borderWidth = 40f
+
+        val borderBitmap = createBmp(
             totalRect,
-            Bitmap.Config.ARGB_8888
-        ) { c, width, height ->
-            fillPaint.color = Color.BLACK
-            c.drawRect(0f, 0f, width, height, fillPaint)
-            fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-            val size = 50f
-            c.drawRoundRect(size, size, width - size, height - size, 25f, 25f, fillPaint)
-        }
+            { c, width, height ->
+                fillPaint.color = Color.BLACK
+                c.drawRect(0f, 0f, width, height, fillPaint)
+                fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+
+                c.drawRoundRect(
+                    borderWidth,
+                    borderWidth,
+                    width - borderWidth,
+                    height - borderWidth,
+                    cornerRadius,
+                    cornerRadius,
+                    fillPaint
+                )
+            }
+        )
 
         val glowCanvasBmp = createBmp(totalRect)
 
         resetPaint(fillPaint)
 
-        val sourceAlpha = src.extractAlpha()
+        val sourceAlpha = borderBitmap.extractAlpha()
         val glowCanvas = Canvas(glowCanvasBmp)
 
         paint.color = Color.BLACK
-        val blurRadius = 50f
         paint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
 
-        glowCanvas.clipPath(rectToPath(btnRect, 25f))
+        glowCanvas.clipPath(rectToPath(btnRect, cornerRadius))
+        paint.alpha = 175
         glowCanvas.drawBitmap(sourceAlpha, 0f, 0f, paint)
 
         canvas.drawBitmap(glowCanvasBmp, 0f, 0f, antialiasPaint)
     }
 
-    private fun rectToPath(rect: RectF, round: Float = 0f): Path {
-        val result = Path()
-        result.addRoundRect(rect, round, round, Path.Direction.CW)
-        return result
-    }
-
-    private fun createBmp(rect: RectF, config: Bitmap.Config = Bitmap.Config.ARGB_8888): Bitmap {
-        return Bitmap.createBitmap(
-            totalRect.width().toInt(),
-            totalRect.height().toInt(),
-            config
-        )
-    }
-
-    private fun createBmp(
-        rect: RectF,
-        config: Bitmap.Config,
-        drawFun: (Canvas, Float, Float) -> Unit
-    ): Bitmap {
-        return createBmp(rect.width().toInt(), rect.height().toInt(), config, drawFun)
-    }
-
-    private fun createBmp(
-        width: Int,
-        height: Int,
-        config: Bitmap.Config,
-        drawFun: (Canvas, Float, Float) -> Unit
-    ): Bitmap {
-
-        val result = Bitmap.createBitmap(width, height, config)
-
-        val canvas = Canvas(result)
-
-        drawFun(canvas, width.toFloat(), height.toFloat())
-
-        return result
-    }
 
     private fun drawChar(canvasZ: Canvas) {
         val src = BitmapFactory.decodeResource(resources, R.drawable.baseline_favorite_border_white_24)
@@ -206,92 +211,137 @@ class RectShadowButton(context: Context?, attrs: AttributeSet?) : View(context, 
         drawShadowPadding(canvas)
     }
 
-    private fun drawPaddingCut(canvas: Canvas) {
-        resetPaint(fillPaint)
-        fillPaint.color = baseColor
-        canvas.drawCircle(cx, cy, btnRadius + 7, fillPaint)
-
-        strokePaint.color = Color.BLACK
-        canvas.drawCircle(cx, cy, btnRadius + 1, strokePaint)
-    }
-
     private fun drawLightPadding(canvas: Canvas) {
         resetPaint(fillPaint)
-        val lightShader = RadialGradient(
+        val lightShader = LinearGradient(
+            cx,
+            0f,
             cx,
             cy,
-            radius,
             intArrayOf(Color.WHITE, Color.TRANSPARENT),
             floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
         fillPaint.color = Color.WHITE
-        fillPaint.alpha = 100
-        fillPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
+        //fillPaint.alpha = 100
+        //fillPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
         fillPaint.shader = lightShader
-        canvas.drawArc(lightRect, 0f, -180f, true, fillPaint)
+
+        val blurRadius = padding - padding / 2.5f
+        val borderSize = padding
+
+        val borderBitmap = createBmp(
+            totalRect,
+            { c, width, height ->
+                fillPaint.color = Color.WHITE
+                //c.drawRect(0f, 0f, width, height, fillPaint)
+                //fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+
+                val widthDecreaser = borderSize / 12f
+
+                c.drawRoundRect(
+                    borderSize + widthDecreaser,
+                    borderSize,
+                    width - borderSize - widthDecreaser,
+                    height - borderSize,
+                    cornerRadius,
+                    cornerRadius,
+                    fillPaint
+                )
+            }
+        )
+
+        val glowCanvasBmp = createBmp(totalRect)
+
+        resetPaint(fillPaint)
+
+        val sourceAlpha = borderBitmap.extractAlpha()
+        val glowCanvas = Canvas(glowCanvasBmp)
+
+        paint.color = Color.WHITE
+        paint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
+
+        glowCanvas.drawBitmap(sourceAlpha, 0f, 0f, paint)
+        canvas.drawBitmap(glowCanvasBmp, 0f, 0f, antialiasPaint)
+
+        //canvas.drawBitmap(borderBitmap, 0f, 0f, null)
+
+
+        //canvas.drawRect(totalRect, fillPaint)
+        //canvas.drawArc(lightRect, 0f, -180f, true, fillPaint)
     }
 
     private fun drawShadowPadding(canvas: Canvas) {
         resetPaint(fillPaint)
-        val lightShader = RadialGradient(
+        val lightShader = LinearGradient(
             cx,
             cy,
-            radius,
+            cx,
+            0f,
             intArrayOf(Color.BLACK, Color.TRANSPARENT),
             floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
         fillPaint.color = Color.BLACK
-        fillPaint.alpha = 180
-        fillPaint.maskFilter = BlurMaskFilter(35f, BlurMaskFilter.Blur.NORMAL)
-        //fillPaint.shader = lightShader
-        canvas.drawArc(lightRect, 0f, 180f, true, fillPaint)
+        fillPaint.shader = lightShader
+
+        val blurRadius = padding
+        val borderSize = padding
+
+        val borderBitmap = createBmp(
+            totalRect,
+            { c, width, height ->
+                fillPaint.color = Color.BLACK
+                //c.drawRect(0f, 0f, width, height, fillPaint)
+                //fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+
+                val borderSizeDecreaser = borderSize / 10f
+
+                c.drawRoundRect(
+                    borderSize + borderSizeDecreaser,
+                    borderSize,
+                    width - borderSize - borderSizeDecreaser,
+                    height - borderSize,
+                    cornerRadius,
+                    cornerRadius,
+                    fillPaint
+                )
+            }
+        )
+
+        val glowCanvasBmp = createBmp(totalRect)
+
+        resetPaint(fillPaint)
+
+        val sourceAlpha = borderBitmap.extractAlpha()
+        val glowCanvas = Canvas(glowCanvasBmp)
+
+        paint.color = Color.BLACK
+        paint.isDither = true
+        paint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
+
+        glowCanvas.drawBitmap(sourceAlpha, 0f, 0f, paint)
+        canvas.drawBitmap(glowCanvasBmp, 0f, 0f, antialiasPaint)
     }
 
     private fun drawButton(canvas: Canvas) {
 
-        //drawPaddingCut(canvas)
+        resetPaint(fillPaint)
 
-        val destinationBmp = Bitmap.createBitmap(
-            btnRect.width().toInt(),
-            btnRect.height().toInt(),
-            Bitmap.Config.ARGB_8888
+        val lightShader = LinearGradient(
+            cx,
+            btnRect.top,
+            cx,
+            btnRect.bottom,
+            intArrayOf(Color.WHITE, Color.TRANSPARENT, Color.BLACK),
+            floatArrayOf(0f, 0.5f, 1f),
+            Shader.TileMode.CLAMP
         )
-//
-//        val cnv = Canvas(bmp)
 
-        // base
-        resetPaint(fillPaint)
-        fillPaint.color = Color.RED
-        //fillPaint.color = baseColor
-        fillPaint.alpha = 255
-        canvas.drawRoundRect(btnRect, roundCornern, roundCornern, fillPaint)
-        //cnv.drawRoundRect(btnRect, roundCornern, roundCornern, fillPaint)
+        fillPaint.alpha = 20
+        fillPaint.shader = lightShader
 
-        // radial light
-        resetPaint(fillPaint)
-        //val surfaceShader = RadialGradient(cx, cy, btnRadius, Color.WHITE, Color.BLACK, Shader.TileMode.CLAMP)
-        fillPaint.color = Color.RED
-        fillPaint.maskFilter = BlurMaskFilter(35f, BlurMaskFilter.Blur.INNER)
-        fillPaint.alpha = 150
-        fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.XOR)
-        canvas.drawCircle(100f, 100f, 70f, fillPaint)
-
-        fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
-        canvas.drawCircle(200f, 100f, 70f, fillPaint)
-
-        fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-        canvas.drawCircle(300f, 100f, 70f, fillPaint)
-
-        //canvas.drawRoundRect(btnRect, roundCornern, roundCornern, fillPaint)
-
-        // vertical light
-//        resetPaint(fillPaint)
-//        val lightShader = LinearGradient(cx, 0f, cx, btnHeight, Color.WHITE, Color.BLACK, Shader.TileMode.CLAMP)
-//        fillPaint.shader = lightShader
-//        fillPaint.alpha = 45
-//        canvas.drawRoundRect(btnRect, roundCornern, roundCornern, fillPaint)
+        canvas.drawRoundRect(btnRect, cornerRadius, cornerRadius, fillPaint)
     }
 
     private fun resetPaint(paint: Paint) {
