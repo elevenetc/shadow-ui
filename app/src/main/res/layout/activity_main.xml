@@ -1,14 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<LinearLayout
+        android:orientation="vertical"
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#262626"
+        android:padding="25dp"
         tools:context=".MainActivity">
 
-    <com.example.shadowui.CircleView
+    <com.example.shadowui.CircleShadowButton
+            android:id="@+id/btnCircle"
+            android:layout_marginBottom="25dp"
             android:layout_width="120dp"
             android:layout_height="120dp"/>
 
-</FrameLayout>
+    <com.example.shadowui.RectShadowButton
+            android:id="@+id/btnRect"
+            android:layout_width="300dp" android:layout_height="120dp"
+    />
+
+    <CheckBox
+            android:layout_marginTop="100dp"
+            android:text="Debug"
+            android:id="@+id/checkDebug"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+</LinearLayout>

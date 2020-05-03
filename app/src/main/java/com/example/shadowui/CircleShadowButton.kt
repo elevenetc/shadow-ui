@@ -6,7 +6,7 @@ import android.util.AttributeSet
 import android.view.View
 
 
-class CircleView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
+class CircleShadowButton(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
 
     val antialiasPaint = Paint().apply {
         isAntiAlias = true
@@ -45,14 +45,16 @@ class CircleView(context: Context?, attrs: AttributeSet?) : View(context, attrs)
     var radius = 0f
     var padding = 60f
     var paddingPercent = 0f
-    lateinit var rect: RectF
+    lateinit var lightRect: RectF
+
+    val debug = Debug(false)
 
     override fun onDraw(canvas: Canvas) {
 
         width = canvas.width.toFloat()
         height = canvas.height.toFloat()
 
-        rect = RectF(padding, padding / 2, width - padding, height - padding / 2)
+        lightRect = RectF(padding, padding / 2, width - padding, height - padding / 2)
 
         btnWidth = width - padding * 2
         btnHeight = height - padding * 2
@@ -67,8 +69,11 @@ class CircleView(context: Context?, attrs: AttributeSet?) : View(context, attrs)
 
         drawChar(canvas)
 
-        //canvas.drawRect(rect, debugPaint)
-        //canvas.drawCircle(cy, cy, btnRadius, debugPaint)
+        if (debug.enabled) {
+            canvas.drawRect(lightRect, debugPaint)
+            canvas.drawCircle(cy, cy, btnRadius, debugPaint)
+        }
+
     }
 
     private fun drawChar(canvasZ: Canvas) {
@@ -130,7 +135,7 @@ class CircleView(context: Context?, attrs: AttributeSet?) : View(context, attrs)
         fillPaint.alpha = 100
         fillPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
         fillPaint.shader = lightShader
-        canvas.drawArc(rect, 0f, -180f, true, fillPaint)
+        canvas.drawArc(lightRect, 0f, -180f, true, fillPaint)
     }
 
     private fun drawShadowPadding(canvas: Canvas) {
@@ -147,7 +152,7 @@ class CircleView(context: Context?, attrs: AttributeSet?) : View(context, attrs)
         fillPaint.alpha = 180
         fillPaint.maskFilter = BlurMaskFilter(35f, BlurMaskFilter.Blur.NORMAL)
         //fillPaint.shader = lightShader
-        canvas.drawArc(rect, 0f, 180f, true, fillPaint)
+        canvas.drawArc(lightRect, 0f, 180f, true, fillPaint)
     }
 
     private fun drawButton(canvas: Canvas) {
